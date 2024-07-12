@@ -1,0 +1,59 @@
+version: "3.3"
+services:
+  mysql:
+    container_name: some-mysql
+    image: mysql:5.7
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: prestashop
+    networks:
+      - nuxt_prestashop_network
+    volumes:
+      - ./dbdata:/var/lib/mysql
+  phpmyadmin:
+    depends_on:
+      - mysql
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: some-mysql
+      MYSQL_ROOT_PASSWORD: admin
+    networks:
+      - nuxt_prestashop_network
+  prestashop:
+    container_name: prestashop
+    image: prestashop/prestashop:latest # Latest stable version of the PrestaShop, to see all available images go to ...
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    ports:
+      - 8080:80
+    environment:
+      DB_SERVER: some-mysql
+      DB_NAME: prestashop
+      DB_USER: root
+      DB_PASSWD: admin
+    networks:
+      - nuxt_prestashop_network
+    volumes:
+      - ./html:/var/www/html
+  nuxt:
+    build:
+      context: ./app
+    image: nuxt_dev
+    container_name: nuxt_dev
+    command: yarn run dev
+    volumes:
+      - ./app:/app
+      # http://jdlm.info/articles/2016/03/06/lessons-building-node-app-docker.html
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+networks:
+  nuxt_prestashop_network:
+volumes:
+  psdata:
+  dbdata:
